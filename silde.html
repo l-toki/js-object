@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<style>
+    .canvas {
+        height: 600px;
+        width: 800px;
+        position: relative;
+        background-color: rgb(80, 64, 64);
+    }
+</style>
+
+<body>
+    <div class="canvas"></div>
+</body>
+<script>
+    const Tool = {
+            // 获得随机数
+            getRandom: function(max = 1, min = 0) {
+                return Math.floor(Math.random() * max + min)
+            },
+            // 解析字符串rgb，返回数字
+            resolveRgb: function(rgb) {
+                const arrayRgb = [];
+                const rIndex = rgb.indexOf('(');
+                const gIndex = rgb.indexOf(',');
+                const bIndex = rgb.indexOf(',', gIndex + 1);
+                const indexEnd = rgb.indexOf(')');
+                const r = parseInt(rgb.substring(rIndex + 1, gIndex));
+                const g = parseInt(rgb.substring(gIndex + 1, bIndex));
+                const b = parseInt(rgb.substring(bIndex + 1, indexEnd));
+                arrayRgb.push(r);
+                arrayRgb.push(g);
+                arrayRgb.push(b);
+                return arrayRgb;
+            },
+            // 将数组的rbg合成字符串rbg
+            compoundRbg: function(rgb) {
+                let stringRbg = 'rgb(';
+                for (const iterator of rgb) {
+                    stringRbg += (iterator + ',')
+                }
+                const lastIndex = stringRbg.lastIndexOf(',');
+                stringRbg = stringRbg.substring(0, lastIndex)
+                stringRbg += ')';
+                return stringRbg;
+            },
+            //将两个字符串的rgb的值相加
+            sumRbg: function(rgbA, rgbB) {
+                const arrayRgbA = this.resolveRgb(rgbA);
+                const arrayRgbB = this.resolveRgb(rgbB);
+                const sum = [];
+                for (let i in arrayRgbA) {
+                    const newRbg = arrayRgbA[i] + arrayRgbB[i]
+                    sum.push(newRbg)
+                }
+                return this.compoundRbg(sum)
+            },
+            // 一定时间内，和目标距离减少
+            closeTo: function(one, two, time) {
+                const newSpeed = {};
+                for (const key in one) {
+                    if (typeof one[key] === 'string' && one[key].indexOf('rgb(') > -1) {
+                        const arrayRgb = [];
+                        const oneArray = Tool.resolveRgb(one[key]);
+                        const twoArray = Tool.resolveRgb(two[key]);
+                        for (let index = 0; index < twoArray.length; index++) {
+                            arrayRgb.push(Math.ceil((twoArray[index] - oneArray[index]) / 10))
+                        };
+                        newSpeed[key] = Tool.compoundRbg(arrayRgb);
+                        continue;
+                    }
+                    newSpeed[key] = Math.ceil((two[key] - one[key]) / time)
+                }
+                return newSpeed
+            }
+        }
+        // 生成方块
+    const Dianmonds = function(parent, options = {}) {
+        this.height = (options.height || 20),
+            this.width = (options.width || 20),
+            this.left = (options.x || 0),
+            this.top = (options.y || 0),
+            this.backgroundColor = `rgb${options.rgb||'(144,144,144)'}`,
+            this.position = 'absolute',
+            this.dianmond = document.createElement('div');
+        parent.appendChild(this.dianmond);
+        this.parent = parent;
+    };
+    // 随机生成方块坐标颜色 赋予
+    Dianmonds.prototype.random = function(flag = false) {
+        const r = Tool.getRandom(255, 0);
+        const g = Tool.getRandom(255, 0);
+        const b = Tool.getRandom(255, 0);
+        const x = Tool.getRandom(this.parent.offsetWidth - 20);
+        const y = Tool.getRandom(this.parent.offsetHeight - 20);
+        this.left = x;
+        this.top = y;
+        this.backgroundColor = `rgb(${r},${g},${b})`;
+        if (flag) {
+            return;
+        }
+        this.dianmond.style.left = x + 'px';
+        this.dianmond.style.top = y + 'px';
+        this.dianmond.style.backgroundColor = `rgb(${r},${g},${b})`
+    };
+    // 让方块的坐标颜色向着新生成的坐标颜色靠近 渐变
+    Dianmonds.prototype.follow = function(speed = 10) {
+        // 记录当前坐标
+        // 随机生成新坐标
+        // 记录新坐标
+        // 使用定时器，缩小差距
+        // 到达一定临界值后，清理定时器，再次使用该函数
+        const _this = this;
+        let oldOwn = {
+            left: _this.left,
+            top: _this.top,
+            backgroundColor: _this.backgroundColor
+        };
+        this.random(true);
+        const newOwn = {
+            left: _this.left,
+            top: _this.top,
+            backgroundColor: _this.backgroundColor
+        };
+        // 定时器 用来缩小坐标颜色差距
+        const exercise = setInterval(function() {
+            returnOwn = Tool.closeTo(oldOwn, newOwn, speed);
+            const allX = _this.dianmond.offsetLeft + returnOwn.left;
+            const allY = _this.dianmond.offsetTop + returnOwn.top;
+            const allRbg = Tool.sumRbg(oldOwn.backgroundColor, returnOwn.backgroundColor);
+            oldOwn = {
+                left: allX,
+                top: allY,
+                backgroundColor: allRbg
+            };
+            _this.left = allX;
+            _this.top = allY;
+            _this.backgroundColor = allRbg;
+            _this.dianmond.style.left = allX + 'px';
+            _this.dianmond.style.top = allY + 'px';
+            _this.dianmond.style.backgroundColor = allRbg;
+            const conditionLeft = (_this.left - newOwn.left) < speed && (_this.left - newOwn.left) > -speed;
+            const conditionTop = (_this.top - newOwn.top) < speed && (_this.top - newOwn.top) > -speed;
+            if (conditionLeft && conditionTop) {
+                clearInterval(exercise);
+                _this.follow(speed)
+            }
+        }, 30)
+    };
+    // 初始化方块的属性
+    Dianmonds.prototype.init = function() {
+        const div = this.dianmond;
+        div.style.width = this.width + 'px';
+        div.style.height = this.height + 'px';
+        div.style.left = this.left + 'px';
+        div.style.top = this.top + 'px';
+        div.style.backgroundColor = this.backgroundColor;
+        div.style.position = this.position;
+    }
+
+    const dianmondArray = [];
+    const parent = document.querySelector('.canvas');
+    // 生成方块，把生成的对象添加到数组中，方便管理
+    for (let i = 0; i < 10; i++) {
+        let dianmond = new Dianmonds(parent);
+        dianmond.init()
+        dianmondArray.push(dianmond)
+    }
+
+    function runRandom() {
+        dianmondArray.forEach(element => {
+            element.follow(80)
+        });
+    }
+    runRandom()
+</script>
+
+</html>
