@@ -1,1 +1,1 @@
-![silde](E:\HTML\JSPDF练习\第三章\JS面向对象\silde.gif)
+
